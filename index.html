@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Fraud Detector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #f0f4f8;
+  --card: #ffffff;
+  --card-alt: #f7f9fc;
+  --navy: #1a2332;
+  --navy-light: #2d3f54;
+  --blue: #3b82f6;
+  --blue-soft: #dbeafe;
+  --blue-glow: rgba(59,130,246,.12);
+  --green: #10b981;
+  --green-soft: #d1fae5;
+  --red: #ef4444;
+  --red-soft: #fee2e2;
+  --amber: #f59e0b;
+  --amber-soft: #fef3c7;
+  --orange: #f97316;
+  --orange-soft: #fff7ed;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-xs: 7px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+@keyframes fadeUp { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes scaleIn { from { opacity:0; transform: scale(.95); } to { opacity:1; transform: scale(1); } }
+.fade-up { animation: fadeUp .45s ease both; }
+.scale-in { animation: scaleIn .35s ease both; }
+.spin { animation: spin 1s linear infinite; }
+.pulse { animation: pulse 1.5s ease infinite; }
+
+/* ── Header ─────────────────────────────────────── */
+.header {
+  background: linear-gradient(135deg, #1a2332 0%, #1e3a5f 50%, #1a2332 100%);
+  color: white;
+  padding: 28px 0 32px;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(59,130,246,.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+}
+.header h1 {
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  margin-bottom: 6px;
+}
+.header h1 span { color: #60a5fa; }
+.header p {
+  font-size: 14px;
+  color: rgba(255,255,255,.55);
+  font-weight: 400;
+}
+.badge-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.badge {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,.7);
+  backdrop-filter: blur(4px);
+}
+.badge strong { color: #60a5fa; }
+
+/* ── Main ───────────────────────────────────────── */
+.main {
+  max-width: 960px;
+  margin: -20px auto 40px;
+  padding: 0 24px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Cards ──────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: box-shadow .2s;
+}
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.card-title .icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.step-num {
+  background: var(--blue);
+  color: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.step-num.done { background: var(--green); }
+
+/* ── API Key ────────────────────────────────────── */
+.key-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.key-input {
+  flex: 1;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--card-alt);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.key-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+.key-input::placeholder { color: var(--text-muted); }
+.btn-sm {
+  padding: 10px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--card);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  font-family: inherit;
+}
+.btn-sm:hover { border-color: var(--border-strong); color: var(--text); }
+.key-status {
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.key-ok { color: var(--green); }
+.key-missing { color: var(--text-muted); }
+.key-help {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  line-height: 1.7;
+}
+.key-help a { color: var(--blue); text-decoration: none; }
+.key-help a:hover { text-decoration: underline; }
+
+/* ── Drop Zone ──────────────────────────────────── */
+.drop-zone {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  background: var(--card-alt);
+  position: relative;
+}
+.drop-zone:hover { border-color: var(--blue); background: var(--blue-soft); }
+.drop-zone.over { border-color: var(--blue); background: var(--blue-soft); transform: scale(1.005); }
+.drop-zone.has-file {
+  border-style: solid;
+  border-color: var(--green);
+  background: var(--green-soft);
+  cursor: default;
+}
+.drop-zone input[type=file] { display: none; }
+.drop-icon { font-size: 36px; margin-bottom: 10px; opacity: .6; }
+.drop-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.drop-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+.format-pills { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.format-pill {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: .04em;
+}
+.file-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.file-preview-name { font-size: 14px; font-weight: 600; color: var(--green); }
+.file-preview-size { font-size: 11px; color: var(--text-muted); }
+.btn-remove {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+}
+.btn-remove:hover { border-color: var(--red); color: var(--red); }
+
+/* ── Buttons ────────────────────────────────────── */
+.btn-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.btn-primary {
+  padding: 13px 32px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-xs);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .2s;
+  box-shadow: 0 2px 8px rgba(59,130,246,.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,.35); }
+.btn-primary:disabled { opacity: .4; cursor: default; }
+.btn-secondary {
+  padding: 13px 20px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+}
+.btn-secondary:hover { border-color: var(--border-strong); color: var(--text); }
+
+/* ── Error ──────────────────────────────────────── */
+.error-box {
+  background: var(--red-soft);
+  border: 1px solid rgba(239,68,68,.2);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  font-size: 13px;
+  color: #b91c1c;
+  margin-bottom: 20px;
+  display: none;
+  line-height: 1.6;
+}
+.error-box strong { font-weight: 700; }
+
+/* ── Loading ────────────────────────────────────── */
+.loading-card {
+  text-align: center;
+  padding: 40px 24px;
+  display: none;
+}
+.loading-spinner { font-size: 32px; margin-bottom: 14px; display: inline-block; }
+.loading-title { font-size: 16px; font-weight: 700; color: var(--blue); margin-bottom: 4px; }
+.loading-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+.steps-list { display: flex; flex-direction: column; gap: 10px; max-width: 260px; margin: 0 auto; text-align: left; }
+.step-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted); font-weight: 500; transition: color .3s; }
+.step-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border-strong);
+  flex-shrink: 0;
+  transition: all .3s;
+}
+.step-item.active .step-dot { background: var(--blue); box-shadow: 0 0 8px rgba(59,130,246,.4); }
+.step-item.done .step-dot { background: var(--green); }
+.step-item.active, .step-item.done { color: var(--text); }
+
+/* ── Results ────────────────────────────────────── */
+#results { display: none; }
+.verdict-card {
+  text-align: center;
+  padding: 32px 24px 28px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+.verdict-card.valid {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 2px solid #6ee7b7;
+}
+.verdict-card.fraud {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 2px solid #fca5a5;
+}
+.verdict-emoji { font-size: 48px; margin-bottom: 8px; }
+.verdict-company { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; letter-spacing: .05em; text-transform: uppercase; }
+.verdict-label {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  margin-bottom: 4px;
+}
+.verdict-card.valid .verdict-label { color: #059669; }
+.verdict-card.fraud .verdict-label { color: #dc2626; }
+.verdict-sub { font-size: 10px; color: var(--text-muted); letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
+
+.prob-row { margin-bottom: 14px; }
+.prob-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.prob-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+.prob-value { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.prob-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.prob-fill { height: 100%; border-radius: 3px; transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+.green { color: var(--green); } .green-fill { background: var(--green); }
+.red { color: var(--red); } .red-fill { background: var(--red); }
+
+/* ── Tabs ───────────────────────────────────────── */
+.tabs { display: flex; gap: 4px; background: var(--card-alt); padding: 4px; border-radius: var(--radius-xs); margin-bottom: 18px; }
+.tab-btn {
+  flex: 1;
+  padding: 9px 0;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+}
+.tab-btn.active { background: white; color: var(--text); box-shadow: var(--shadow-sm); }
+.tab-btn .count { color: var(--red); margin-left: 3px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── Drivers ────────────────────────────────────── */
+.driver-item { margin-bottom: 10px; }
+.driver-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.driver-name { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+.driver-value { font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+.driver-bar { height: 4px; background: #f1f5f9; border-radius: 2px; overflow: hidden; }
+.driver-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+
+/* ── Issues ─────────────────────────────────────── */
+.issue-card {
+  padding: 12px 16px;
+  border-radius: var(--radius-xs);
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 500;
+  border-left: 4px solid;
+}
+.issue-critical { background: #fef2f2; border-color: var(--red); color: #991b1b; }
+.issue-high { background: #fff7ed; border-color: var(--orange); color: #9a3412; }
+.issue-medium { background: #fffbeb; border-color: var(--amber); color: #92400e; }
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* ── Metrics Grid ───────────────────────────────── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 11px;
+}
+.metric-row:last-child { border-bottom: none; }
+.metric-name { color: var(--text-muted); font-weight: 500; }
+.metric-val { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 11px; }
+.metric-val.flagged { color: var(--red); font-weight: 700; }
+.flag-icon { color: var(--red); margin-left: 3px; font-size: 10px; }
+
+/* ── Summary panel ──────────────────────────────── */
+.summary-stats {
+  display: flex;
+  gap: 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.summary-stat { flex: 1; text-align: center; }
+.summary-stat + .summary-stat { border-left: 1px solid var(--border); }
+.summary-stat-num { font-size: 24px; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+.summary-stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+.sev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.sev-badge.critical { background: var(--red-soft); color: var(--red); }
+.sev-badge.high { background: var(--orange-soft); color: var(--orange); }
+.sev-badge.medium { background: var(--amber-soft); color: var(--amber); }
+.sev-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+.sev-badge.critical .dot { background: var(--red); } .sev-badge.high .dot { background: var(--orange); } .sev-badge.medium .dot { background: var(--amber); }
+.sev-group { margin-bottom: 14px; }
+.sev-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding: 5px 0 5px 14px;
+  border-left: 2px solid var(--border);
+  margin-bottom: 4px;
+}
+.summary-footer {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--card-alt);
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+.no-issues {
+  text-align: center;
+  padding: 30px 20px;
+}
+.no-issues-icon { font-size: 36px; margin-bottom: 8px; }
+.no-issues-title { font-size: 14px; font-weight: 700; color: var(--green); margin-bottom: 4px; }
+.no-issues-sub { font-size: 12px; color: var(--text-muted); }
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 640px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+  .badge-row { gap: 5px; }
+  .main { padding: 0 16px; }
+  .card { padding: 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <h1>Financial Fraud <span>Detector</span></h1>
+    <p>Upload a financial statement — AI extracts 50 metrics and runs a logistic regression model</p>
+    <div class="badge-row">
+      <span class="badge">🧠 <strong>50</strong> Features</span>
+      <span class="badge">📊 <strong>650</strong> Companies</span>
+      <span class="badge">✅ <strong>100%</strong> Test Accuracy</span>
+      <span class="badge">📈 <strong>1.00</strong> ROC-AUC</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Error -->
+  <div class="error-box" id="error-box"><strong>Error: </strong><span id="error-msg"></span></div>
+
+  <!-- Step 1: API Key -->
+  <div class="card fade-up" style="animation-delay:.05s">
+    <div class="card-title"><span class="step-num" id="step1-num">1</span> Enter your Anthropic API Key</div>
+    <div class="key-wrapper">
+      <input class="key-input" id="api-key" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
+      <button class="btn-sm" id="key-toggle" onclick="toggleKey()">Show</button>
+      <span class="key-status" id="key-status"><span class="key-missing">● Not set</span></span>
+    </div>
+    <div class="key-help">
+      Get your key at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a> →
+      Your key stays in your browser and is never stored or sent anywhere except directly to Anthropic's API.
+    </div>
+  </div>
+
+  <!-- Step 2: Upload -->
+  <div class="card fade-up" style="animation-delay:.1s">
+    <div class="card-title"><span class="step-num" id="step2-num">2</span> Upload Financial Statement</div>
+    <div class="drop-zone" id="drop-zone"
+      ondragover="event.preventDefault();this.classList.add('over')"
+      ondragleave="this.classList.remove('over')"
+      ondrop="handleDrop(event)">
+      <input type="file" id="file-input" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.xlsx,.xls,.csv" onchange="handleFileInput(event)">
+      <div id="drop-idle">
+        <div class="drop-icon">📄</div>
+        <div class="drop-title">Click to browse or drag & drop</div>
+        <div class="drop-sub">Annual report · 10-K filing · Balance sheet · Audit report</div>
+        <div class="format-pills">
+          <span class="format-pill">PDF</span>
+          <span class="format-pill">DOCX</span>
+          <span class="format-pill">XLSX</span>
+          <span class="format-pill">CSV</span>
+          <span class="format-pill">PNG</span>
+          <span class="format-pill">JPEG</span>
+          <span class="format-pill">TXT</span>
+        </div>
+      </div>
+      <div id="drop-file" class="file-preview" style="display:none">
+        <div style="font-size:36px" id="file-icon">📄</div>
+        <div class="file-preview-name" id="file-name"></div>
+        <div class="file-preview-size" id="file-size"></div>
+        <button class="btn-remove" onclick="resetFile(event)">✕ Remove file</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="analyze-btn" onclick="analyze()" disabled>
+        <span id="btn-text">▶ Extract & Predict</span>
+      </button>
+      <button class="btn-secondary" id="reset-btn" onclick="fullReset()" style="display:none">✕ Start Over</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="card loading-card" id="loading-card">
+    <div class="loading-spinner spin">⟳</div>
+    <div class="loading-title">Analyzing your document…</div>
+    <div class="loading-sub" id="loading-text">Preparing…</div>
+    <div class="steps-list">
+      <div class="step-item" id="ls1"><span class="step-dot"></span> Reading file</div>
+      <div class="step-item" id="ls2"><span class="step-dot"></span> Extracting 50 financial metrics</div>
+      <div class="step-item" id="ls3"><span class="step-dot"></span> Running fraud detection model</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="verdict-card" id="verdict-card">
+      <div class="verdict-emoji" id="v-emoji">✅</div>
+      <div class="verdict-company" id="v-company"></div>
+      <div class="verdict-label" id="v-label">VALID</div>
+      <div class="verdict-sub">Model Verdict</div>
+    </div>
+
+    <div class="card scale-in" style="animation-delay:.1s">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('verdict')">Verdict</button>
+        <button class="tab-btn" onclick="switchTab('drivers')">Drivers</button>
+        <button class="tab-btn" id="issues-tab-btn" onclick="switchTab('issues')">Issues</button>
+      </div>
+
+      <div class="tab-content active" id="tab-verdict">
+        <div class="prob-row">
+          <div class="prob-header"><span class="prob-label">Valid Probability</span><span class="prob-value green" id="pv-val">0%</span></div>
+          <div class="prob-bar"><div class="prob-fill green-fill" id="pv-bar" style="width:0%"></div></div>
+        </div>
+        <div class="prob-row">
+          <div class="prob-header"><span class="prob-label">Fraud Probability</span><span class="prob-value red" id="pf-val">0%</span></div>
+          <div class="prob-bar"><div class="prob-fill red-fill" id="pf-bar" style="width:0%"></div></div>
+        </div>
+        <div class="summary-footer" id="verdict-summary"></div>
+      </div>
+
+      <div class="tab-content" id="tab-drivers">
+        <div class="section-label">Top feature contributions</div>
+        <div id="drivers-list"></div>
+      </div>
+
+      <div class="tab-content" id="tab-issues">
+        <div id="issues-list"></div>
+      </div>
+    </div>
+
+    <!-- Issues summary panel -->
+    <div class="card scale-in" id="summary-card" style="animation-delay:.2s"></div>
+
+    <!-- Extracted metrics -->
+    <div class="card scale-in" style="animation-delay:.3s">
+      <div class="card-title" style="justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:8px"><span class="step-num done">✓</span> Extracted Metrics</span>
+        <span style="font-size:12px;color:var(--blue);font-weight:600" id="metrics-company"></span>
+      </div>
+      <div class="metrics-grid" id="metrics-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// MODEL — identical to fraud_detector_v5.jsx
+// ══════════════════════════════════════════════════════════════════════════════
+const MODEL={featureCols:["Revenue","Net_Income","Operating_Cash_Flow","Total_Assets","Total_Debt","Current_Ratio","Debt_to_Equity","Gross_Margin","ROA","ROE","Asset_Turnover","Free_Cash_Flow","Benford_Deviation","Audit_Opinion_Risk","Insider_Transactions","Related_Party_Transactions","Governance_Score","Internal_Control_Weakness","NLP_Sentiment_Score","Fraud_Risk_Score","Operating_Margin","EBITDA","EPS","SGA_Expense","RD_Expense","Interest_Coverage_Ratio","Current_Assets","Current_Liabilities","Inventory","Accounts_Receivable","Goodwill","Retained_Earnings","Shareholder_Equity","Capital_Expenditures","CashFlow_to_Debt","CFO_to_NetIncome_Ratio","Financing_Dependence","Beneish_MScore","Altman_ZScore","Days_Sales_Outstanding","Inventory_Growth_Rate","Revenue_Growth_Rate","Accrual_Ratio","Auditor_Change_Frequency","Restatement_History","Executive_Turnover","Uncertainty_Word_Count","Readability_Score","Risk_Factor_Count","MDA_Sentiment"],scalerMean:[404353.85861,54606.98201,85731.47558,676621.78149,113413.69923,1.74072,1.35979,0.47977,0.12365,0.14767,0.88026,62085.98201,0.10925,0.41388,0.46787,0.491,69.56555,0.43959,0.38093,0.34825,0.15221,76173.33419,7.5073,29228.3856,29552.57326,16.40159,214376.81491,126348.62211,54017.4036,68841.86118,79988.55527,94417.3599,216214.09512,40185.77121,2.06784,1.97339,0.3873,-1.76555,5.09571,73.64704,0.28648,0.21319,0.11558,0.40617,0.39332,0.47301,64.21851,54.84576,25.31105,0.38267],scalerStd:[269356.78062,54545.6858,64463.46138,345040.76651,74073.63569,0.74128,1.63307,0.18792,0.11151,0.27739,0.41773,62874.16329,0.11926,0.49253,0.49897,0.49992,21.23183,0.49634,0.4762,0.24119,0.18875,59468.76801,7.44579,17521.60393,19789.70242,13.8812,153296.46928,68953.6836,34212.7553,42932.22634,46351.28983,100732.56378,150939.04022,26422.28344,4.90693,4.99191,0.22926,1.60966,2.84609,53.35103,0.34257,0.24029,0.21807,0.49112,0.48849,0.49927,54.75973,20.81161,14.91703,0.46345],coef:[0.16253,0.14923,0.19826,0.19986,-0.24616,0.31106,-0.46931,0.13336,0.35169,0.39418,0.2004,0.16624,-0.49567,-0.22647,-0.21342,-0.18151,0.3974,-0.14103,0.44424,-0.39368,0.40071,0.19501,0.29799,-0.18912,0.21645,0.29649,0.21822,0.02014,-0.17981,-0.17824,-0.08313,0.31884,0.21042,0.21669,-0.01715,0.21695,-0.32628,-0.48688,0.31734,-0.42547,-0.46929,-0.07027,-0.4888,-0.20685,-0.28712,-0.15885,-0.40108,0.32209,-0.24122,0.44658],intercept:1.01894};
+
+const THRESHOLDS={Current_Ratio:{dir:"low",v:1.0,msg:"Current ratio < 1.0 — liquidity risk"},Debt_to_Equity:{dir:"high",v:2.5,msg:"Debt-to-equity > 2.5 — excessive leverage"},Benford_Deviation:{dir:"high",v:0.15,msg:"Benford deviation > 0.15 — accounting anomaly"},Audit_Opinion_Risk:{dir:"eq",v:1,msg:"Qualified/adverse audit opinion — major red flag"},Insider_Transactions:{dir:"eq",v:1,msg:"Insider transactions flagged"},Internal_Control_Weakness:{dir:"eq",v:1,msg:"Material internal control weakness reported"},NLP_Sentiment_Score:{dir:"low",v:-0.2,msg:"Negative NLP sentiment in filings"},Fraud_Risk_Score:{dir:"high",v:0.6,msg:"High composite fraud risk score"},Gross_Margin:{dir:"low",v:0.1,msg:"Extremely low gross margin"},ROA:{dir:"low",v:-0.05,msg:"Negative return on assets"},Free_Cash_Flow:{dir:"low",v:0,msg:"Negative free cash flow"},Governance_Score:{dir:"low",v:50,msg:"Low governance score"},Beneish_MScore:{dir:"high",v:-1.78,msg:"Beneish M-Score above -1.78 — earnings manipulation likely"},Altman_ZScore:{dir:"low",v:1.81,msg:"Altman Z-Score < 1.81 — distress zone"},Restatement_History:{dir:"eq",v:1,msg:"Historical financial restatements on record"},Auditor_Change_Frequency:{dir:"eq",v:1,msg:"Frequent auditor changes — independence concern"},Financing_Dependence:{dir:"high",v:0.7,msg:"High dependence on external financing"},CFO_to_NetIncome_Ratio:{dir:"low",v:0.5,msg:"Low cash flow to net income — accrual manipulation risk"},Days_Sales_Outstanding:{dir:"high",v:100,msg:"DSO > 100 days — revenue recognition concern"},Accrual_Ratio:{dir:"high",v:0.1,msg:"High accrual ratio — earnings quality concern"},Inventory_Growth_Rate:{dir:"high",v:0.4,msg:"Inventory growth rate > 40% — channel stuffing risk"},Revenue_Growth_Rate:{dir:"low",v:-0.1,msg:"Revenue declining > 10% year-over-year"}};
+
+// ═══════════════════ EXTRACTION SYSTEM PROMPT (v5 — improved scoring) ═══════════════════
+const EXTRACTION_SYSTEM=`You are a forensic financial analyst specializing in fraud detection. Extract metrics from the financial statement and return ONLY a raw JSON object — no markdown, no backticks, no explanation.
+
+Required keys (all numeric unless noted):
+{"company_name":"string or null","Revenue":"thousands USD","Net_Income":"thousands","Operating_Cash_Flow":"thousands","Total_Assets":"thousands","Total_Debt":"thousands","Current_Ratio":"number","Debt_to_Equity":"number","Gross_Margin":"0-1","ROA":"number","ROE":"number","Asset_Turnover":"number","Free_Cash_Flow":"thousands","Benford_Deviation":"0-1","Audit_Opinion_Risk":"0 or 1","Insider_Transactions":"0 or 1","Related_Party_Transactions":"0 or 1","Governance_Score":"0-100","Internal_Control_Weakness":"0 or 1","NLP_Sentiment_Score":"-1 to 1","Fraud_Risk_Score":"0-1","Operating_Margin":"0-1","EBITDA":"thousands","EPS":"number","SGA_Expense":"thousands","RD_Expense":"thousands","Interest_Coverage_Ratio":"number","Current_Assets":"thousands","Current_Liabilities":"thousands","Inventory":"thousands","Accounts_Receivable":"thousands","Goodwill":"thousands","Retained_Earnings":"thousands","Shareholder_Equity":"thousands","Capital_Expenditures":"thousands","CashFlow_to_Debt":"number","CFO_to_NetIncome_Ratio":"number","Financing_Dependence":"0-1","Beneish_MScore":"number","Altman_ZScore":"number","Days_Sales_Outstanding":"days","Inventory_Growth_Rate":"number","Revenue_Growth_Rate":"number","Accrual_Ratio":"number","Auditor_Change_Frequency":"0 or 1","Restatement_History":"0 or 1","Executive_Turnover":"0 or 1","Uncertainty_Word_Count":"number","Readability_Score":"Flesch 0-100","Risk_Factor_Count":"number","MDA_Sentiment":"-1 to 1"}
+
+CRITICAL SCORING GUIDANCE — these four fields drive the model's predictive power:
+
+BENFORD_DEVIATION (0-1): Do NOT rely solely on digit counts. Also factor in:
+- Accounts receivable growing >2x faster than revenue → +0.05
+- Operating cash flow / net income ratio collapsing >40% YoY → +0.04
+- Capitalized intangibles/software spiking >100% with no acquisition → +0.04
+- Multiple round-number figures or suspiciously smooth metrics → +0.03
+Calibration: 0.02-0.07=normal; 0.08-0.14=minor; 0.15-0.22=suspicious (when 2+ signals apply); 0.22-0.35=highly suspicious.
+
+FRAUD_RISK_SCORE (0-1): Build from 0.20 baseline:
++0.10 each: FCF negative; CFO/NI<0.5; DSO>75 days; AR growing>1.5x revenue growth
++0.12 each: inventory growing>1.5x revenue; capitalized expenses up>100% YoY
++0.15: 3+ concurrent signals; management tone contradicts cash flow reality
+Cap at 0.95. Do not underestimate.
+
+NLP_SENTIMENT_SCORE (-1 to 1): When management uses positive language while cash flows deteriorate, score NEGATIVE:
++0.3 to +0.6: positive language + strong cash flows
+0.0 to +0.2: positive + mixed signals
+-0.1 to -0.3: positive + OCF/NI<0.5 or FCF negative
+-0.3 to -0.6: very positive + multiple deteriorating cash metrics
+
+MDA_SENTIMENT: Same logic as NLP_Sentiment_Score.
+
+BENEISH M-SCORE: Calculate when prior-year data available:
+M = -4.84 + 0.920*DSRI + 0.528*GMI + 0.404*AQI + 0.892*SGI + 0.115*DEPI - 0.172*SGAI + 4.679*TATA - 0.327*LVGI
+where DSRI=(AR_t/Rev_t)/(AR_{t-1}/Rev_{t-1}), TATA=(NI-OCF)/TA. Score>-1.78 = manipulation likely.
+
+CASH FLOW CHECK: If Beginning_Cash+OCF+InvestingCF+FinancingCF+FX != Ending_Cash, set Internal_Control_Weakness=1.
+
+Rules: Monetary values in THOUSANDS USD. Compute ratios when not stated. Use null only if truly unknown. Return ONLY raw JSON.`;
+
+// ═══════════════════ MODEL FUNCTIONS ═══════════════════
+function sigmoid(x){return 1/(1+Math.exp(-Math.max(-500,Math.min(500,x))))}
+
+function runModel(values){
+  let z=MODEL.intercept;const contribs=[];
+  MODEL.featureCols.forEach((col,i)=>{
+    const raw=values[col];const num=(raw!==undefined&&raw!==null)?parseFloat(raw):NaN;
+    const scaled=isNaN(num)?0:(num-MODEL.scalerMean[i])/MODEL.scalerStd[i];
+    const c=MODEL.coef[i]*scaled;z+=c;
+    contribs.push({col,contrib:c,missing:isNaN(num)});
+  });
+  const pv=sigmoid(z);
+  return{probValid:pv,probFraud:1-pv,isValid:pv>=0.5,contributions:contribs};
+}
+
+function detectProblems(v){
+  const p=[];
+  Object.entries(THRESHOLDS).forEach(([k,r])=>{const val=parseFloat(v[k]);if(isNaN(val))return;if(r.dir==="high"&&val>r.v)p.push(r.msg);if(r.dir==="low"&&val<r.v)p.push(r.msg);if(r.dir==="eq"&&val==r.v)p.push(r.msg)});
+  if(parseFloat(v.Net_Income)>0&&parseFloat(v.Operating_Cash_Flow)<0)p.push("Positive net income but negative operating cash flow — earnings manipulation signal");
+  if(parseFloat(v.Revenue)>0&&parseFloat(v.Free_Cash_Flow)<-0.25*parseFloat(v.Revenue))p.push("Free cash flow deeply negative relative to revenue");
+  const rev=parseFloat(v.Revenue),ar=parseFloat(v.Accounts_Receivable),ocf=parseFloat(v.Operating_Cash_Flow),ni=parseFloat(v.Net_Income),fcf=parseFloat(v.Free_Cash_Flow),dso=parseFloat(v.Days_Sales_Outstanding),invGr=parseFloat(v.Inventory_Growth_Rate),revGr=parseFloat(v.Revenue_Growth_Rate),cfoNi=parseFloat(v.CFO_to_NetIncome_Ratio);
+  if(!isNaN(ar)&&!isNaN(rev)&&rev>0&&ar/rev>0.22)p.push(`Accounts receivable is ${(ar/rev*100).toFixed(1)}% of annual revenue — disproportionate AR signals revenue quality risk`);
+  if(!isNaN(dso)&&dso>=75&&dso<100)p.push(`DSO elevated at ${Math.round(dso)} days — significantly above healthy range, trending toward critical threshold`);
+  if(!isNaN(cfoNi)&&cfoNi>0&&cfoNi<0.4)p.push(`Operating cash flow is only ${(cfoNi*100).toFixed(0)}% of net income — severe accrual-based earnings signal`);
+  if(!isNaN(invGr)&&!isNaN(revGr)&&revGr>0&&invGr>revGr*1.5)p.push(`Inventory growing ${(invGr/revGr).toFixed(1)}× faster than revenue — demand mismatch or channel stuffing`);
+  if(!isNaN(revGr)&&revGr>0.15&&!isNaN(fcf)&&fcf<0)p.push(`Strong revenue growth (${(revGr*100).toFixed(0)}%) with negative free cash flow — growth not backed by cash`);
+  if(!isNaN(ocf)&&ocf>0&&!isNaN(ni)&&ni>0&&ocf/ni<0.35)p.push(`Operating cash flow covers only ${(ocf/ni*100).toFixed(0)}% of net income — earnings heavily accrual-based`);
+  return p;
+}
+
+function categorizeProblem(m){
+  const ml=m.toLowerCase();
+  const critical=["beneish m-score","benford deviation","earnings manipulation","qualified/adverse audit","material internal control","restatements","covers only","only "];
+  const high=["excessive leverage","fraud risk score","high composite","negative return","altman z-score","negative nlp","manipulation signal","disproportionate","premature","severe accrual","revenue growth","negative free cash"];
+  if(critical.some(k=>ml.includes(k)))return"critical";
+  if(high.some(k=>ml.includes(k)))return"high";
+  return"medium";
+}
+
+// ═══════════════════ FILE HANDLING ═══════════════════
+let currentFile=null;
+
+async function prepareFileContent(file){
+  const t=file.type,n=file.name.toLowerCase();
+  if(t.includes("wordprocessingml")||t==="application/msword"||n.endsWith(".docx")||n.endsWith(".doc")){
+    const ab=await file.arrayBuffer();const r=await mammoth.extractRawText({arrayBuffer:ab});
+    if(!r.value.trim())throw new Error("Could not extract text from DOCX.");
+    return{mode:"text",text:r.value};
+  }
+  if(t==="text/plain"||n.endsWith(".txt"))return{mode:"text",text:await file.text()};
+  if(t==="text/csv"||n.endsWith(".csv"))return{mode:"text",text:await file.text()};
+  if(t.includes("spreadsheet")||t.includes("excel")||n.endsWith(".xlsx")||n.endsWith(".xls")){
+    const ab=await file.arrayBuffer();
+    const wb=XLSX.read(ab,{type:"array"});
+    let allText="";
+    wb.SheetNames.forEach(name=>{
+      const ws=wb.Sheets[name];
+      allText+="=== Sheet: "+name+" ===\n";
+      allText+=XLSX.utils.sheet_to_csv(ws,{blankrows:false})+"\n\n";
+    });
+    if(!allText.trim())throw new Error("Could not extract data from Excel file.");
+    return{mode:"text",text:allText};
+  }
+  if(t==="application/pdf"||n.endsWith(".pdf")||t.startsWith("image/")||/\.(png|jpe?g)$/.test(n)){
+    const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=()=>rej(new Error("Read failed"));r.readAsDataURL(file)});
+    return{mode:"binary",base64:b64,mediaType:(t==="application/pdf"||n.endsWith(".pdf"))?"application/pdf":(t||"image/png")};
+  }
+  throw new Error("Unsupported file type: "+file.name);
+}
+
+async function extractFromDocument(fc,apiKey){
+  let messages;
+  if(fc.mode==="binary"){
+    const isImg=fc.mediaType.startsWith("image/");
+    messages=[{role:"user",content:[isImg?{type:"image",source:{type:"base64",media_type:fc.mediaType,data:fc.base64}}:{type:"document",source:{type:"base64",media_type:"application/pdf",data:fc.base64}},{type:"text",text:"Extract all financial metrics from this financial statement."}]}];
+  }else{
+    messages=[{role:"user",content:`Here is the financial statement text:\n\n${fc.text.slice(0,50000)}\n\nExtract all 50 financial metrics.`}];
+  }
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1800,system:EXTRACTION_SYSTEM,messages})
+  });
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e?.error?.message||`API error ${res.status}`)}
+  const data=await res.json();
+  let text=data.content.map(b=>b.text||"").join("").trim().replace(/```json|```/g,"").trim();
+  try{return JSON.parse(text)}catch(_){}
+  const match=text.match(/\{[\s\S]+\}/);if(match)try{return JSON.parse(match[0])}catch(_){}
+  throw new Error("Could not parse Claude response as JSON.");
+}
+
+// ═══════════════════ UI LOGIC ═══════════════════
+const $=id=>document.getElementById(id);
+
+function toggleKey(){
+  const inp=$('api-key'),btn=$('key-toggle');
+  inp.type=inp.type==='password'?'text':'password';
+  btn.textContent=inp.type==='password'?'Show':'Hide';
+}
+
+$('api-key').addEventListener('input',function(){
+  const v=this.value.trim();
+  const s=$('key-status');
+  if(v.startsWith('sk-ant-')){s.innerHTML='<span class="key-ok">● Key set</span>';$('step1-num').classList.add('done');$('step1-num').textContent='✓'}
+  else{s.innerHTML='<span class="key-missing">● Not set</span>';$('step1-num').classList.remove('done');$('step1-num').textContent='1'}
+  updateBtn();
+});
+
+function handleDrop(e){e.preventDefault();$('drop-zone').classList.remove('over');handleFile(e.dataTransfer.files[0])}
+function handleFileInput(e){handleFile(e.target.files[0])}
+
+function handleFile(f){
+  if(!f)return;
+  if(!/\.(pdf|docx?|png|jpe?g|txt|xlsx?|csv)$/i.test(f.name)){showError("Unsupported file. Use PDF, DOCX, XLSX, CSV, PNG, JPEG, or TXT.");return}
+  currentFile=f;
+  $('drop-idle').style.display='none';
+  $('drop-file').style.display='flex';
+  $('drop-zone').classList.add('has-file');
+  $('file-icon').textContent=f.type==='application/pdf'?'📄':f.type.startsWith('image/')?'🖼️':(f.name.match(/\.(xlsx?|csv)$/i)?'📊':'📝');
+  $('file-name').textContent=f.name;
+  $('file-size').textContent=(f.size/1024).toFixed(1)+' KB';
+  $('step2-num').classList.add('done');$('step2-num').textContent='✓';
+  $('error-box').style.display='none';
+  updateBtn();
+}
+
+function resetFile(e){
+  if(e)e.stopPropagation();
+  currentFile=null;$('file-input').value='';
+  $('drop-idle').style.display='block';$('drop-file').style.display='none';
+  $('drop-zone').classList.remove('has-file');
+  $('step2-num').classList.remove('done');$('step2-num').textContent='2';
+  updateBtn();
+}
+
+function fullReset(){
+  resetFile();
+  $('results').style.display='none';
+  $('loading-card').style.display='none';
+  $('reset-btn').style.display='none';
+  $('error-box').style.display='none';
+  ['ls1','ls2','ls3'].forEach(id=>{$(id).className='step-item'});
+}
+
+function updateBtn(){
+  const hasKey=$('api-key').value.trim().startsWith('sk-ant-');
+  $('analyze-btn').disabled=!hasKey||!currentFile;
+}
+
+function showError(msg){$('error-msg').textContent=msg;$('error-box').style.display='block'}
+function setLoading(step,text){
+  $('loading-text').textContent=text;
+  ['ls1','ls2','ls3'].forEach((id,i)=>{
+    const el=$(id);
+    if(i<step-1)el.className='step-item done';
+    else if(i===step-1)el.className='step-item active';
+    else el.className='step-item';
+  });
+}
+
+$('drop-zone').addEventListener('click',function(e){
+  if(!currentFile&&e.target.tagName!=='BUTTON')$('file-input').click();
+});
+
+async function analyze(){
+  if(!currentFile)return;
+  const key=$('api-key').value.trim();
+  if(!key.startsWith('sk-ant-')){showError("Please enter a valid API key.");return}
+  $('error-box').style.display='none';$('results').style.display='none';
+  $('loading-card').style.display='block';$('reset-btn').style.display='inline-flex';
+  $('analyze-btn').disabled=true;$('btn-text').innerHTML='<span class="spin" style="display:inline-block">⟳</span> Analyzing…';
+  try{
+    setLoading(1,"Reading your file…");
+    const fc=await prepareFileContent(currentFile);
+    setLoading(2,"Claude is extracting financial metrics…");
+    const metrics=await extractFromDocument(fc,key);
+    setLoading(3,"Running fraud detection model…");
+    const{company_name,...fv}=metrics;
+    const pred=runModel(fv);
+    const probs=detectProblems(fv);
+    $('loading-card').style.display='none';
+    renderResults({...pred,problems:probs,company_name},{company_name,...fv});
+  }catch(e){
+    $('loading-card').style.display='none';
+    showError(e.message||"Something went wrong.");
+  }
+  $('analyze-btn').disabled=false;
+  $('btn-text').textContent='▶ Extract & Predict';
+  updateBtn();
+}
+
+function renderResults(r,ex){
+  $('results').style.display='block';
+  const vc=$('verdict-card');vc.className='verdict-card scale-in '+(r.isValid?'valid':'fraud');
+  $('v-emoji').textContent=r.isValid?'✅':'🚨';
+  $('v-company').textContent=r.company_name||'';
+  $('v-label').textContent=r.isValid?'VALID':'FRAUDULENT';
+  $('pv-val').textContent=(r.probValid*100).toFixed(1)+'%';
+  $('pf-val').textContent=(r.probFraud*100).toFixed(1)+'%';
+  setTimeout(()=>{$('pv-bar').style.width=(r.probValid*100)+'%';$('pf-bar').style.width=(r.probFraud*100)+'%'},80);
+  $('verdict-summary').textContent=r.isValid?'✓ Model classifies this statement as financially valid with no significant fraud signals.':'⚠ Model classifies this statement as likely fraudulent. Review the flagged issues below.';
+
+  // Drivers
+  const sorted=[...r.contributions].sort((a,b)=>Math.abs(b.contrib)-Math.abs(a.contrib)).slice(0,8);
+  $('drivers-list').innerHTML=sorted.map(d=>`<div class="driver-item"><div class="driver-header"><span class="driver-name">${d.col.replace(/_/g,' ')}</span><span class="driver-value" style="color:${d.contrib>0?'var(--green)':'var(--red)'}">${d.contrib>0?'+':''}${d.contrib.toFixed(3)}</span></div><div class="driver-bar"><div class="driver-fill" style="width:${Math.min(Math.abs(d.contrib)/0.2*100,100)}%;background:${d.contrib>0?'var(--green)':'var(--red)'}"></div></div></div>`).join('');
+
+  // Issues
+  const itb=$('issues-tab-btn');
+  if(r.problems.length>0)itb.innerHTML='Issues <span class="count">('+r.problems.length+')</span>';
+  else itb.textContent='Issues';
+  if(r.problems.length===0){
+    $('issues-list').innerHTML='<div class="no-issues"><div class="no-issues-icon">✓</div><div class="no-issues-title">No anomalies detected</div><div class="no-issues-sub">All threshold checks passed.</div></div>';
+  }else{
+    $('issues-list').innerHTML='<div class="section-label">'+(r.isValid?'Warnings':'Detected Issues')+' ('+r.problems.length+')</div>'+r.problems.map(p=>`<div class="issue-card issue-${categorizeProblem(p)}">${p}</div>`).join('');
+  }
+
+  // Summary
+  const cr=r.problems.filter(p=>categorizeProblem(p)==='critical');
+  const hi=r.problems.filter(p=>categorizeProblem(p)==='high');
+  const me=r.problems.filter(p=>categorizeProblem(p)==='medium');
+  if(r.problems.length===0){
+    $('summary-card').innerHTML='<div class="no-issues"><div class="no-issues-icon">✅</div><div class="no-issues-title">Clean Report</div><div class="no-issues-sub">All 22+ threshold checks passed. No anomalies found.</div></div>';
+  }else{
+    let html='<div class="card-title" style="margin-bottom:14px"><span style="display:flex;align-items:center;gap:8px">⚠ Problems Found</span><span style="font-size:12px;color:var(--red);font-weight:700">'+r.problems.length+' issue'+(r.problems.length!==1?'s':'')+'</span></div>';
+    html+='<div class="summary-stats"><div class="summary-stat"><div class="summary-stat-num" style="color:var(--red)">'+cr.length+'</div><div class="summary-stat-label">Critical</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--orange)">'+hi.length+'</div><div class="summary-stat-label">High</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--amber)">'+me.length+'</div><div class="summary-stat-label">Medium</div></div><div class="summary-stat"><div class="summary-stat-num" style="color:var(--text)">'+r.problems.length+'</div><div class="summary-stat-label">Total</div></div></div>';
+    if(cr.length)html+='<div class="sev-group"><span class="sev-badge critical"><span class="dot"></span>Critical</span>'+cr.map(p=>'<div class="sev-item" style="border-left-color:var(--red)">'+p+'</div>').join('')+'</div>';
+    if(hi.length)html+='<div class="sev-group"><span class="sev-badge high"><span class="dot"></span>High</span>'+hi.map(p=>'<div class="sev-item" style="border-left-color:var(--orange)">'+p+'</div>').join('')+'</div>';
+    if(me.length)html+='<div class="sev-group"><span class="sev-badge medium"><span class="dot"></span>Medium</span>'+me.map(p=>'<div class="sev-item" style="border-left-color:var(--amber)">'+p+'</div>').join('')+'</div>';
+    const sumText=cr.length>0?`⚠ ${cr.length} critical indicator${cr.length>1?'s':''} — immediate forensic review recommended.`:hi.length>0?`⚠ ${hi.length} high-severity signal${hi.length>1?'s':''} require escalated scrutiny.`:`ℹ ${me.length} medium-severity warning${me.length>1?'s':''} — monitor closely.`;
+    html+='<div class="summary-footer">'+sumText+'</div>';
+    $('summary-card').innerHTML=html;
+  }
+
+  // Metrics
+  if(ex.company_name)$('metrics-company').textContent=ex.company_name;
+  $('metrics-grid').innerHTML=MODEL.featureCols.map(col=>{
+    const val=ex[col];const rule=THRESHOLDS[col];let flagged=false;
+    if(rule&&val!==undefined&&val!==null){const v=parseFloat(val);if(!isNaN(v)){if(rule.dir==="high"&&v>rule.v)flagged=true;if(rule.dir==="low"&&v<rule.v)flagged=true;if(rule.dir==="eq"&&v==rule.v)flagged=true;}}
+    const display=(val!==undefined&&val!==null)?(typeof val==='number'?(Math.abs(val)>999?val.toLocaleString():parseFloat(val.toFixed(3))):val):'—';
+    return`<div class="metric-row"><span class="metric-name">${col.replace(/_/g,' ')}</span><span class="metric-val${flagged?' flagged':''}">${display}${flagged?'<span class="flag-icon">⚑</span>':''}</span></div>`;
+  }).join('');
+
+  switchTab('verdict');
+  $('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{b.classList.toggle('active',['verdict','drivers','issues'][i]===t)});
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  $('tab-'+t).classList.add('active');
+}
+</script>
+</body>
+</html>
